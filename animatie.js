@@ -7,147 +7,141 @@ function initAnimatie() {
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
 
-  const AMBER = 'rgba(200,150,62,';
-  const N = 48; // aantal deeltjes
-  let AW, AH;
-  let fase = 'chaos'; // chaos | organiseer | woord | verval
-  let faseTimer = 0;
-  const FASE_DUUR = { chaos: 120, organiseer: 90, woord: 80, verval: 70 };
-  let woordAlpha = 0;
+  const AMBER = [212, 160, 72];
+  const N = 55;
+  let W, H, fase = 'chaos', faseTimer = 0, woordAlpha = 0;
+  const FASE_DUUR = { chaos: 130, organiseer: 100, woord: 90, verval: 75 };
 
   function resize() {
-    AW = canvas.width = canvas.offsetWidth * (window.devicePixelRatio || 1);
-    AH = canvas.height = 100 * (window.devicePixelRatio || 1);
-    ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+    W = canvas.width = canvas.offsetWidth;
+    H = canvas.height = canvas.offsetHeight;
   }
 
-  const W = () => canvas.offsetWidth;
-  const H = () => 100;
-
-  // Deeltjes
-  const deeltjes = Array.from({ length: N }, () => ({
-    x: Math.random(),   // 0-1 relatief
-    y: Math.random(),
-    vx: (Math.random() - .5) * .003,
-    vy: (Math.random() - .5) * .003,
-    r: Math.random() * 1.8 + .6,
-    alpha: Math.random() * .4 + .1,
-    // doelpositie voor organiseer fase
-    tx: 0, ty: 0,
-  }));
+  // Deeltjes in absolute pixels
+  const deeltjes = [];
+  function initDeeltjes() {
+    deeltjes.length = 0;
+    for (let i = 0; i < N; i++) {
+      deeltjes.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        vx: (Math.random() - .5) * .6,
+        vy: (Math.random() - .5) * .6,
+        r: Math.random() * 2 + .8,
+        alpha: Math.random() * .45 + .15,
+        tx: 0, ty: 0,
+      });
+    }
+  }
 
   function setDoelen() {
-    // Cluster deeltjes losjes rond het midden
     deeltjes.forEach((d, i) => {
       const angle = (i / N) * Math.PI * 2;
-      const radius = .08 + Math.random() * .12;
-      d.tx = .5 + Math.cos(angle) * radius;
-      d.ty = .5 + Math.sin(angle) * radius * .5;
+      const rx = W * 0.18;
+      const ry = H * 0.25;
+      d.tx = W / 2 + Math.cos(angle) * rx * (Math.random() * .5 + .5);
+      d.ty = H / 2 + Math.sin(angle) * ry * (Math.random() * .5 + .5);
     });
   }
 
+  function rgba(a) { return `rgba(${AMBER[0]},${AMBER[1]},${AMBER[2]},${a})`; }
+
   function draw() {
-    const w = W(), h = H();
-    ctx.clearRect(0, 0, w, h);
-
+    ctx.clearRect(0, 0, W, H);
     faseTimer++;
-    const progress = faseTimer / FASE_DUUR[fase];
+    const progress = Math.min(faseTimer / FASE_DUUR[fase], 1);
 
-    // Fase logica
     if (faseTimer >= FASE_DUUR[fase]) {
       faseTimer = 0;
       if (fase === 'chaos') { fase = 'organiseer'; setDoelen(); }
       else if (fase === 'organiseer') { fase = 'woord'; woordAlpha = 0; }
       else if (fase === 'woord') { fase = 'verval'; }
-      else if (fase === 'verval') {
+      else {
         fase = 'chaos';
         woordIdx = (woordIdx + 1) % WOORDEN.length;
-        // Reset deeltjes naar willekeurige posities
         deeltjes.forEach(d => {
-          d.vx = (Math.random() - .5) * .003;
-          d.vy = (Math.random() - .5) * .003;
+          d.vx = (Math.random() - .5) * .6;
+          d.vy = (Math.random() - .5) * .6;
         });
       }
     }
 
-    // Update deeltjes
-    deeltjes.forEach(d => {
-      if (fase === 'organiseer') {
-        // Trek naar doel
-        const ease = Math.min(progress * 1.5, 1);
-        d.x += (d.tx - d.x) * .06 * ease;
-        d.y += (d.ty - d.y) * .06 * ease;
+    // Update en teken verbindingen
+    deeltjes.forEach((d, di) => {
+      if (fase === 'chaos') {
+        d.x += d.vx; d.y += d.vy;
+        if (d.x < 0) { d.x = 0; d.vx *= -1; }
+        if (d.x > W) { d.x = W; d.vx *= -1; }
+        if (d.y < 0) { d.y = 0; d.vy *= -1; }
+        if (d.y > H) { d.y = H; d.vy *= -1; }
+      } else if (fase === 'organiseer') {
+        d.x += (d.tx - d.x) * .07;
+        d.y += (d.ty - d.y) * .07;
       } else if (fase === 'woord') {
-        // Blijf licht bewegen
-        d.x += d.vx * .3;
-        d.y += d.vy * .3;
-      } else if (fase === 'verval') {
-        // Explodeer zachtjes
-        d.vx += (d.x - .5) * .0004;
-        d.vy += (d.y - .5) * .0004;
-        d.x += d.vx;
-        d.y += d.vy;
+        d.x += (d.tx - d.x) * .02;
+        d.y += (d.ty - d.y) * .02;
       } else {
-        // Chaos — drift
-        d.x += d.vx;
-        d.y += d.vy;
-        // Bounce
-        if (d.x < 0 || d.x > 1) d.vx *= -1;
-        if (d.y < 0 || d.y > 1) d.vy *= -1;
-        d.x = Math.max(0, Math.min(1, d.x));
-        d.y = Math.max(0, Math.min(1, d.y));
+        const fx = (d.x - W/2) * .002;
+        const fy = (d.y - H/2) * .002;
+        d.vx += fx; d.vy += fy;
+        d.x += d.vx; d.y += d.vy;
       }
 
-      // Verbindingen tussen nabije deeltjes
-      deeltjes.forEach(b => {
-        const dx = (d.x - b.x) * w;
-        const dy = (d.y - b.y) * h;
+      // Verbindingen
+      const maxDist = fase === 'chaos' ? 80 : 50;
+      for (let j = di+1; j < deeltjes.length; j++) {
+        const b = deeltjes[j];
+        const dx = d.x - b.x, dy = d.y - b.y;
         const dist = Math.sqrt(dx*dx + dy*dy);
-        const maxDist = fase === 'organiseer' || fase === 'woord' ? 40 : 60;
-        if (dist < maxDist && dist > 0) {
-          const lineAlpha = (1 - dist / maxDist) * (fase === 'woord' ? .25 : .08);
+        if (dist < maxDist) {
+          const lineA = (1 - dist/maxDist) * (fase === 'woord' ? .2 : .07);
           ctx.beginPath();
-          ctx.moveTo(d.x * w, d.y * h);
-          ctx.lineTo(b.x * w, b.y * h);
-          ctx.strokeStyle = AMBER + lineAlpha + ')';
-          ctx.lineWidth = .5;
+          ctx.moveTo(d.x, d.y); ctx.lineTo(b.x, b.y);
+          ctx.strokeStyle = rgba(lineA);
+          ctx.lineWidth = .6;
           ctx.stroke();
         }
-      });
+      }
 
-      // Teken deeltje
-      const a = fase === 'woord' ? d.alpha * .5 : d.alpha;
+      // Deeltje
+      const pA = fase === 'woord' ? d.alpha * .35 : d.alpha;
       ctx.beginPath();
-      ctx.arc(d.x * w, d.y * h, d.r, 0, Math.PI * 2);
-      ctx.fillStyle = AMBER + a + ')';
+      ctx.arc(d.x, d.y, d.r, 0, Math.PI*2);
+      ctx.fillStyle = rgba(pA);
       ctx.fill();
     });
 
     // Woord
     if (fase === 'woord') {
-      woordAlpha = Math.min(woordAlpha + .04, .75);
-      const fontSize = Math.min(w * .055, 18);
-      ctx.font = `italic ${fontSize}px 'EB Garamond', Georgia, serif`;
-      ctx.fillStyle = AMBER + woordAlpha + ')';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(WOORDEN[woordIdx], w / 2, h / 2);
+      woordAlpha = Math.min(woordAlpha + .035, .9);
+      drawWoord(woordAlpha);
     } else if (fase === 'verval') {
-      woordAlpha = Math.max(woordAlpha - .05, 0);
-      if (woordAlpha > 0) {
-        const fontSize = Math.min(w * .055, 18);
-        ctx.font = `italic ${fontSize}px 'EB Garamond', Georgia, serif`;
-        ctx.fillStyle = AMBER + woordAlpha + ')';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(WOORDEN[woordIdx], w / 2, h / 2);
-      }
+      woordAlpha = Math.max(woordAlpha - .04, 0);
+      if (woordAlpha > 0) drawWoord(woordAlpha);
     }
 
     requestAnimationFrame(draw);
   }
 
+  function drawWoord(alpha) {
+    const woord = WOORDEN[woordIdx];
+    // Dynamische fontgrootte op basis van breedte
+    let fontSize = Math.floor(H * 0.52);
+    ctx.font = `italic ${fontSize}px 'EB Garamond', Georgia, serif`;
+    // Pas aan als woord te breed is
+    const maxW = W * 0.92;
+    while (ctx.measureText(woord).width > maxW && fontSize > 20) {
+      fontSize -= 2;
+      ctx.font = `italic ${fontSize}px 'EB Garamond', Georgia, serif`;
+    }
+    ctx.fillStyle = rgba(alpha);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(woord, W/2, H/2);
+  }
+
   resize();
-  window.addEventListener('resize', () => { resize(); });
+  initDeeltjes();
+  window.addEventListener('resize', () => { resize(); initDeeltjes(); });
   draw();
 }

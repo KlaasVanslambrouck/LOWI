@@ -13,8 +13,9 @@ function initAnimatie() {
   const FASE_DUUR = { chaos: 130, organiseer: 100, woord: 90, verval: 75 };
 
   function resize() {
-    W = canvas.width = canvas.offsetWidth;
-    H = canvas.height = canvas.offsetHeight;
+    W = canvas.width = canvas.offsetWidth || 480;
+    H = canvas.height = 160;
+    canvas.style.height = '160px';
   }
 
   // Deeltjes in absolute pixels

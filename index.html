@@ -479,6 +479,17 @@ document.addEventListener('keydown', e => {
   if (typedKeys.includes('crispr')) { typedKeys = ''; showPage('page2'); }
 });
 
+// Animatie canvas lang indrukken → page3
+const animatieWrap = document.getElementById('animatieCanvas');
+let animTimer;
+function startAnim() { animTimer = setTimeout(() => showPage('page3'), 800); }
+function cancelAnim() { clearTimeout(animTimer); }
+animatieWrap.addEventListener('mousedown', startAnim);
+animatieWrap.addEventListener('mouseup', cancelAnim);
+animatieWrap.addEventListener('mouseleave', cancelAnim);
+animatieWrap.addEventListener('touchstart', e => { e.preventDefault(); startAnim(); });
+animatieWrap.addEventListener('touchend', cancelAnim);
+
 // Subtitel lang indrukken
 const subtitelEl = document.getElementById('subtitleEl');
 let subTimer;

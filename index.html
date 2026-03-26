@@ -39,9 +39,24 @@
   .error-msg { font-size: .8rem; color: #c85a3e; display: none; }
   .confirm { display: none; flex-direction: column; align-items: center; gap: .5rem; color: var(--amber); font-style: italic; font-size: 1.1rem; }
 
-  /* SUBTITLE PRESS HINT */
-  .subtitle { position: relative; display: inline-block; }
-  .subtitle.pressing { opacity: .5; }
+  /* Laatste transmissie */
+  .laatste-transmissie {
+    width: 100%;
+    max-width: 480px;
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+  }
+  .lt-label { font-family: 'Space Mono', monospace; font-size: .6rem; letter-spacing: .3em; text-transform: uppercase; color: var(--amber-dim); margin-bottom: 1rem; }
+  .lt-item { cursor: pointer; transition: opacity .2s; text-decoration: none; display: block; }
+  .lt-item:hover { opacity: .6; }
+  .lt-meta { display: flex; gap: .75rem; align-items: center; margin-bottom: .4rem; }
+  .lt-type { font-family: 'Space Mono', monospace; font-size: .58rem; letter-spacing: .2em; text-transform: uppercase; color: var(--amber-dim); }
+  .lt-date { font-family: 'Space Mono', monospace; font-size: .58rem; color: var(--muted); opacity: .5; }
+  .lt-title { font-size: 1.1rem; color: var(--text); margin-bottom: .35rem; line-height: 1.4; }
+  .lt-excerpt { font-size: .9rem; color: var(--muted); font-style: italic; line-height: 1.6; }
+  .lt-alle { display: inline-block; margin-top: 1rem; font-family: 'Space Mono', monospace; font-size: .6rem; letter-spacing: .2em; text-transform: uppercase; color: var(--amber-dim); text-decoration: none; transition: color .2s; }
+  .lt-alle:hover { color: var(--amber); }
 
   /* CELL TRIGGER */
   .egg-wrap { position: fixed; bottom: 2rem; right: 2rem; z-index: 100; cursor: pointer; user-select: none; }
@@ -217,6 +232,19 @@
     <div class="signal-note">Geen spam. Alleen het moment dat de deuren opengaan.</div>
   </div>
   <div class="confirm" id="confirm"><span>✦</span><span>Sein ontvangen. We houden je op de hoogte.</span></div>
+
+  <div class="laatste-transmissie" id="laatsteTransmissie" style="display:none">
+    <div class="lt-label">Laatste transmissie</div>
+    <a class="lt-item" href="/transmissies.html" id="ltItem">
+      <div class="lt-meta">
+        <span class="lt-type" id="ltType"></span>
+        <span class="lt-date" id="ltDate"></span>
+      </div>
+      <div class="lt-title" id="ltTitle"></div>
+      <div class="lt-excerpt" id="ltExcerpt"></div>
+    </a>
+    <a class="lt-alle" href="/transmissies.html">Alle transmissies →</a>
+  </div>
 </div>
 
 <!-- CELL EASTER EGG -->
@@ -408,6 +436,32 @@ document.getElementById('labInput').addEventListener('keydown',e=>{if(e.key==='E
 
 // ── Type effect ──
 function typeText(el,text){el.textContent='';el.classList.add('visible');let i=0;const iv=setInterval(()=>{el.textContent+=text[i];i++;if(i>=text.length)clearInterval(iv);},28);}
+
+// ── Laatste transmissie ──
+async function loadLaatste() {
+  try {
+    const res = await fetch('/.netlify/functions/transmissies');
+    const data = await res.json();
+    if (!data.transmissies || !data.transmissies.length) return;
+    const first = data.transmissies[0];
+    const match = first.content.match(/^---\n([\s\S]+?)\n---\n([\s\S]*)$/);
+    if (!match) return;
+    const meta = {};
+    match[1].split('\n').forEach(line => {
+      const [k,...v] = line.split(':');
+      if(k) meta[k.trim()] = v.join(':').trim().replace(/^["']|["']$/g,'');
+    });
+    const body = match[2].trim().replace(/[#*_>`\[\]]/g,'').trim();
+    const exc = body.length > 100 ? body.slice(0,100)+'…' : body;
+    const d = meta.date ? new Date(meta.date).toLocaleDateString('nl-BE',{day:'numeric',month:'long',year:'numeric'}) : '';
+    document.getElementById('ltType').textContent = meta.type || 'Lab note';
+    document.getElementById('ltDate').textContent = d;
+    document.getElementById('ltTitle').textContent = meta.title || 'Zonder titel';
+    document.getElementById('ltExcerpt').textContent = exc;
+    document.getElementById('laatsteTransmissie').style.display = '';
+  } catch {}
+}
+loadLaatste();
 
 // ── Signup ──
 async function handleSignup(e){

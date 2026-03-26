@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LOWI — Transmissies</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Space+Mono:wght@400&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a0b; --surface: #111114; --amber: #c8963e; --amber-dim: #7a5a22;
+    --text: #d4cfc8; --muted: #5a5650; --border: #1e1d1b;
+  }
+  html, body { min-height: 100%; background: var(--bg); color: var(--text); font-family: 'EB Garamond', Georgia, serif; }
+  #canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+  .wrap { position: relative; z-index: 1; max-width: 680px; margin: 0 auto; padding: 5rem 1.5rem 6rem; }
+
+  /* Header */
+  .site-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4rem; }
+  .site-logo { font-family: 'Space Mono', monospace; font-size: 1.3rem; letter-spacing: .25em; color: var(--amber); text-decoration: none; }
+  .site-logo:hover { opacity: .7; }
+  .back-link { font-family: 'Space Mono', monospace; font-size: .65rem; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); text-decoration: none; opacity: .4; transition: opacity .2s; }
+  .back-link:hover { opacity: 1; }
+
+  /* Page title */
+  .page-title { font-family: 'Space Mono', monospace; font-size: clamp(.7rem,2vw,.85rem); letter-spacing: .4em; text-transform: uppercase; color: var(--amber-dim); margin-bottom: 1rem; }
+  .page-intro { font-size: clamp(1.1rem,3vw,1.4rem); font-style: italic; color: var(--text); opacity: .7; margin-bottom: 3rem; line-height: 1.5; }
+  .divider { width: 1px; height: 2.5rem; background: linear-gradient(to bottom, transparent, var(--amber-dim), transparent); margin-bottom: 3rem; }
+
+  /* Transmissie lijst */
+  .list { display: flex; flex-direction: column; gap: 0; }
+  .transmissie-item { padding: 1.75rem 0; border-bottom: 1px solid var(--border); cursor: pointer; transition: opacity .2s; }
+  .transmissie-item:first-child { border-top: 1px solid var(--border); }
+  .transmissie-item:hover { opacity: .7; }
+  .t-meta { display: flex; align-items: center; gap: 1rem; margin-bottom: .6rem; }
+  .t-type { font-family: 'Space Mono', monospace; font-size: .6rem; letter-spacing: .25em; text-transform: uppercase; color: var(--amber-dim); }
+  .t-date { font-family: 'Space Mono', monospace; font-size: .6rem; color: var(--muted); opacity: .5; }
+  .t-title { font-size: clamp(1.1rem,2.5vw,1.35rem); color: var(--text); line-height: 1.4; margin-bottom: .4rem; }
+  .t-excerpt { font-size: .95rem; color: var(--muted); line-height: 1.6; font-style: italic; }
+
+  /* Laadindicator */
+  .loading { font-family: 'Space Mono', monospace; font-size: .7rem; letter-spacing: .2em; color: var(--muted); opacity: .4; padding: 2rem 0; }
+
+  /* Transmissie detail */
+  .detail { display: none; }
+  .detail.active { display: block; }
+  .list.hidden { display: none; }
+
+  .detail-back { font-family: 'Space Mono', monospace; font-size: .65rem; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); opacity: .4; cursor: pointer; background: none; border: none; padding: 0; margin-bottom: 3rem; transition: opacity .2s; }
+  .detail-back:hover { opacity: 1; }
+  .detail-type { font-family: 'Space Mono', monospace; font-size: .6rem; letter-spacing: .3em; text-transform: uppercase; color: var(--amber-dim); margin-bottom: .75rem; }
+  .detail-title { font-size: clamp(1.5rem,4vw,2.2rem); color: var(--text); line-height: 1.3; margin-bottom: .75rem; }
+  .detail-date { font-family: 'Space Mono', monospace; font-size: .65rem; color: var(--muted); opacity: .4; margin-bottom: 2.5rem; }
+  .detail-divider { width: 1px; height: 2rem; background: linear-gradient(to bottom, transparent, var(--amber-dim), transparent); margin-bottom: 2.5rem; }
+  .detail-body { font-size: clamp(1rem,2vw,1.15rem); line-height: 1.9; color: var(--text); opacity: .85; }
+  .detail-body p { margin-bottom: 1.25em; }
+  .detail-body h1, .detail-body h2, .detail-body h3 { font-size: 1.1rem; color: var(--amber); margin: 2em 0 .75em; font-family: 'Space Mono', monospace; font-weight: 400; letter-spacing: .1em; }
+  .detail-body strong { color: var(--amber); font-weight: 500; }
+  .detail-body em { font-style: italic; }
+  .detail-body a { color: var(--amber); text-underline-offset: 3px; }
+  .detail-body blockquote { border-left: 1px solid var(--amber-dim); padding-left: 1.25rem; color: var(--muted); font-style: italic; margin: 1.5em 0; }
+
+  footer { position: fixed; bottom: 1rem; left: 0; right: 0; text-align: center; font-family: 'Space Mono', monospace; font-size: .65rem; letter-spacing: .3em; color: var(--muted); opacity: .25; pointer-events: none; z-index: 0; }
+
+  @media (max-width: 600px) {
+    .wrap { padding: 3rem 1.2rem 5rem; }
+    footer { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div class="wrap">
+  <header class="site-header">
+    <a href="/" class="site-logo">LOWI</a>
+    <a href="/" class="back-link">← terug</a>
+  </header>
+
+  <!-- Lijst view -->
+  <div id="listView">
+    <div class="page-title">Transmissies</div>
+    <p class="page-intro">Signalen vanuit het lab.<br>Ruw, reflectief, en in beweging.</p>
+    <div class="divider"></div>
+    <div class="list" id="transmissieList">
+      <div class="loading">Signalen ophalen...</div>
+    </div>
+  </div>
+
+  <!-- Detail view -->
+  <div class="detail" id="detailView">
+    <button class="detail-back" onclick="showList()">← alle transmissies</button>
+    <div class="detail-type" id="detailType"></div>
+    <div class="detail-title" id="detailTitle"></div>
+    <div class="detail-date" id="detailDate"></div>
+    <div class="detail-divider"></div>
+    <div class="detail-body" id="detailBody"></div>
+  </div>
+</div>
+
+<footer>LOWI &nbsp;·&nbsp; © 2026</footer>
+
+<script>
+// ── Particles ──
+const canvas = document.getElementById('canvas'), ctx = canvas.getContext('2d');
+let W, H, particles = [];
+function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+function mkP() { return {x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.2+.3,dx:(Math.random()-.5)*.15,dy:-Math.random()*.2-.05,alpha:Math.random()*.4+.05,fade:Math.random()*.003+.001}; }
+function initP() { resize(); particles = Array.from({length:60},mkP); }
+function drawP() {
+  ctx.clearRect(0,0,W,H);
+  for(let p of particles){ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(200,150,62,${p.alpha})`;ctx.fill();p.x+=p.dx;p.y+=p.dy;p.alpha-=p.fade;if(p.alpha<=0||p.y<-5)Object.assign(p,mkP(),{y:H+5,alpha:Math.random()*.3+.05});}
+  requestAnimationFrame(drawP);
+}
+window.addEventListener('resize',resize); initP(); drawP();
+
+// ── GitHub config ──
+const REPO = 'KlaasVanslambrouck/LOWI';
+const BRANCH = 'main';
+const API = `https://api.github.com/repos/${REPO}/contents/transmissies?ref=${BRANCH}`;
+
+// ── Markdown parser (minimaal) ──
+function parseMarkdown(md) {
+  return md
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+    .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2">$1</a>')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/^(?!<[h|b|p])(.+)$/gm, '$1')
+    .replace(/^(.)/m, '<p>$1')
+    + '</p>';
+}
+
+// ── Frontmatter parser ──
+function parseFrontmatter(content) {
+  const match = content.match(/^---\n([\s\S]+?)\n---\n([\s\S]*)$/);
+  if (!match) return { meta: {}, body: content };
+  const meta = {};
+  match[1].split('\n').forEach(line => {
+    const [key, ...val] = line.split(':');
+    if (key) meta[key.trim()] = val.join(':').trim().replace(/^["']|["']$/g, '');
+  });
+  return { meta, body: match[2].trim() };
+}
+
+// ── Datum formatteren ──
+function formatDate(str) {
+  if (!str) return '';
+  const d = new Date(str);
+  return d.toLocaleDateString('nl-BE', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+// ── Excerpt ──
+function excerpt(body, len=120) {
+  const plain = body.replace(/[#*_>`\[\]]/g, '').trim();
+  return plain.length > len ? plain.slice(0, len) + '…' : plain;
+}
+
+// ── Transmissies laden ──
+async function loadTransmissies() {
+  const list = document.getElementById('transmissieList');
+  try {
+    const res = await fetch(API);
+    const files = await res.json();
+    if (!Array.isArray(files) || files.length === 0) {
+      list.innerHTML = '<div class="loading">Nog geen transmissies.</div>';
+      return;
+    }
+
+    // Sorteer nieuwste eerst
+    const mdFiles = files.filter(f => f.name.endsWith('.md')).reverse();
+
+    const items = await Promise.all(mdFiles.map(async f => {
+      const r = await fetch(f.download_url);
+      const raw = await r.text();
+      return { ...parseFrontmatter(raw), slug: f.name };
+    }));
+
+    list.innerHTML = '';
+    items.forEach(item => {
+      const el = document.createElement('div');
+      el.className = 'transmissie-item';
+      el.innerHTML = `
+        <div class="t-meta">
+          <span class="t-type">${item.meta.type || 'Lab note'}</span>
+          <span class="t-date">${formatDate(item.meta.date)}</span>
+        </div>
+        <div class="t-title">${item.meta.title || 'Zonder titel'}</div>
+        <div class="t-excerpt">${excerpt(item.body)}</div>
+      `;
+      el.addEventListener('click', () => showDetail(item));
+      list.appendChild(el);
+    });
+  } catch(e) {
+    list.innerHTML = '<div class="loading">Kon signalen niet ophalen.</div>';
+  }
+}
+
+// ── Detail tonen ──
+function showDetail(item) {
+  document.getElementById('listView').style.display = 'none';
+  document.getElementById('detailType').textContent = item.meta.type || 'Lab note';
+  document.getElementById('detailTitle').textContent = item.meta.title || 'Zonder titel';
+  document.getElementById('detailDate').textContent = formatDate(item.meta.date);
+  document.getElementById('detailBody').innerHTML = parseMarkdown(item.body);
+  document.getElementById('detailView').classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function showList() {
+  document.getElementById('detailView').classList.remove('active');
+  document.getElementById('listView').style.display = '';
+  window.scrollTo(0, 0);
+}
+
+loadTransmissies();
+</script>
+</body>
+</html>

@@ -39,15 +39,58 @@
   .error-msg { font-size: .8rem; color: #c85a3e; display: none; }
   .confirm { display: none; flex-direction: column; align-items: center; gap: .5rem; color: var(--amber); font-style: italic; font-size: 1.1rem; }
 
-  /* Laatste transmissie */
-  .laatste-transmissie {
+  /* Nucleotiden transmissie trigger */
+  .nucleotiden-wrap {
     width: 100%;
     max-width: 480px;
     margin-top: 3rem;
-    padding-top: 2rem;
-    border-top: 1px solid var(--border);
+    cursor: pointer;
   }
-  .lt-label { font-family: 'Space Mono', monospace; font-size: .6rem; letter-spacing: .3em; text-transform: uppercase; color: var(--amber-dim); margin-bottom: 1rem; }
+
+  .nucleotiden {
+    display: flex;
+    justify-content: center;
+    gap: clamp(.4rem, 1.5vw, .9rem);
+    padding: .75rem 0;
+    flex-wrap: wrap;
+  }
+
+  .nuc {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(.7rem, 1.8vw, .85rem);
+    letter-spacing: .05em;
+    color: var(--amber);
+    animation: nuc-pulse 3s ease-in-out infinite;
+    transition: opacity .3s;
+  }
+  .nuc:nth-child(2n)   { animation-delay: .4s; }
+  .nuc:nth-child(3n)   { animation-delay: .8s; }
+  .nuc:nth-child(4n)   { animation-delay: 1.2s; }
+  .nuc:nth-child(5n)   { animation-delay: .6s; }
+  .nuc:nth-child(6n)   { animation-delay: 1.5s; }
+  .nuc:nth-child(7n)   { animation-delay: .2s; }
+  .nuc:nth-child(8n)   { animation-delay: 1s; }
+
+  @keyframes nuc-pulse {
+    0%,100% { opacity: .12; }
+    50%      { opacity: .55; }
+  }
+
+  .nucleotiden-wrap:hover .nuc { animation: none; opacity: .7; }
+
+  /* Uitklap transmissie */
+  .lt-panel {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .5s ease, opacity .4s ease;
+    opacity: 0;
+  }
+  .nucleotiden-wrap:hover .lt-panel {
+    max-height: 200px;
+    opacity: 1;
+  }
+
+  .lt-label { font-family: 'Space Mono', monospace; font-size: .6rem; letter-spacing: .3em; text-transform: uppercase; color: var(--amber-dim); margin-bottom: .85rem; padding-top: .5rem; border-top: 1px solid var(--border); }
   .lt-item { cursor: pointer; transition: opacity .2s; text-decoration: none; display: block; }
   .lt-item:hover { opacity: .6; }
   .lt-meta { display: flex; gap: .75rem; align-items: center; margin-bottom: .4rem; }
@@ -55,7 +98,7 @@
   .lt-date { font-family: 'Space Mono', monospace; font-size: .58rem; color: var(--muted); opacity: .5; }
   .lt-title { font-size: 1.1rem; color: var(--text); margin-bottom: .35rem; line-height: 1.4; }
   .lt-excerpt { font-size: .9rem; color: var(--muted); font-style: italic; line-height: 1.6; }
-  .lt-alle { display: inline-block; margin-top: 1rem; font-family: 'Space Mono', monospace; font-size: .6rem; letter-spacing: .2em; text-transform: uppercase; color: var(--amber-dim); text-decoration: none; transition: color .2s; }
+  .lt-alle { display: inline-block; margin-top: .85rem; font-family: 'Space Mono', monospace; font-size: .6rem; letter-spacing: .2em; text-transform: uppercase; color: var(--amber-dim); text-decoration: none; transition: color .2s; }
   .lt-alle:hover { color: var(--amber); }
 
   /* CELL TRIGGER */
@@ -233,17 +276,20 @@
   </div>
   <div class="confirm" id="confirm"><span>✦</span><span>Sein ontvangen. We houden je op de hoogte.</span></div>
 
-  <div class="laatste-transmissie" id="laatsteTransmissie" style="display:none">
-    <div class="lt-label">Laatste transmissie</div>
-    <a class="lt-item" href="/transmissies.html" id="ltItem">
-      <div class="lt-meta">
-        <span class="lt-type" id="ltType"></span>
-        <span class="lt-date" id="ltDate"></span>
-      </div>
-      <div class="lt-title" id="ltTitle"></div>
-      <div class="lt-excerpt" id="ltExcerpt"></div>
-    </a>
-    <a class="lt-alle" href="/transmissies.html">Alle transmissies →</a>
+  <div class="nucleotiden-wrap" id="nucleotidenWrap">
+    <div class="nucleotiden" id="nucleotidenSeq"></div>
+    <div class="lt-panel">
+      <div class="lt-label">Laatste transmissie</div>
+      <a class="lt-item" href="/transmissies.html" id="ltItem">
+        <div class="lt-meta">
+          <span class="lt-type" id="ltType"></span>
+          <span class="lt-date" id="ltDate"></span>
+        </div>
+        <div class="lt-title" id="ltTitle"></div>
+        <div class="lt-excerpt" id="ltExcerpt"></div>
+      </a>
+      <a class="lt-alle" href="/transmissies.html">Alle transmissies →</a>
+    </div>
   </div>
 </div>
 
@@ -437,6 +483,19 @@ document.getElementById('labInput').addEventListener('keydown',e=>{if(e.key==='E
 // ── Type effect ──
 function typeText(el,text){el.textContent='';el.classList.add('visible');let i=0;const iv=setInterval(()=>{el.textContent+=text[i];i++;if(i>=text.length)clearInterval(iv);},28);}
 
+// ── Nucleotiden genereren ──
+function generateNucleotiden(n=32) {
+  const bases = ['A','T','C','G'];
+  const seq = document.getElementById('nucleotidenSeq');
+  seq.innerHTML = '';
+  for(let i=0;i<n;i++){
+    const span = document.createElement('span');
+    span.className = 'nuc';
+    span.textContent = bases[Math.floor(Math.random()*4)];
+    seq.appendChild(span);
+  }
+}
+
 // ── Laatste transmissie ──
 async function loadLaatste() {
   try {
@@ -458,9 +517,19 @@ async function loadLaatste() {
     document.getElementById('ltDate').textContent = d;
     document.getElementById('ltTitle').textContent = meta.title || 'Zonder titel';
     document.getElementById('ltExcerpt').textContent = exc;
-    document.getElementById('laatsteTransmissie').style.display = '';
-  } catch {}
+    generateNucleotiden();
+    document.getElementById('nucleotidenWrap').style.display = '';
+  } catch {
+    // Toon reeks ook als er geen transmissies zijn
+    document.getElementById('ltTitle').textContent = 'Nog geen transmissies.';
+    document.getElementById('ltExcerpt').textContent = 'Het lab is aan het werk. Kom later terug.';
+    document.getElementById('ltType').textContent = '';
+    document.getElementById('ltDate').textContent = '';
+    generateNucleotiden();
+    document.getElementById('nucleotidenWrap').style.display = '';
+  }
 }
+generateNucleotiden();
 loadLaatste();
 
 // ── Signup ──

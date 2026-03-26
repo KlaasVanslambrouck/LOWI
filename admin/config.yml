@@ -1,0 +1,19 @@
+backend:
+  name: github
+  repo: KlaasVanslambrouck/LOWI
+  branch: main
+
+media_folder: "assets/images"
+public_folder: "/assets/images"
+
+collections:
+  - name: "transmissies"
+    label: "Transmissies"
+    folder: "transmissies"
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    fields:
+      - { label: "Titel", name: "title", widget: "string" }
+      - { label: "Datum", name: "date", widget: "datetime" }
+      - { label: "Type", name: "type", widget: "select", options: ["Lab note", "Reflectie", "Essay"], default: "Lab note" }
+      - { label: "Inhoud", name: "body", widget: "markdown" }

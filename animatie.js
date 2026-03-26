@@ -4,7 +4,7 @@ function initAnimatie() {
 
   // Stel canvas dimensies in vóór alles
   const W = canvas.offsetWidth || 480;
-  const H = 160;
+  const H = 120;
   canvas.width = W;
   canvas.height = H;
 
@@ -71,10 +71,11 @@ function initAnimatie() {
     deeltjes.forEach(d => {
       if (fase === 'drift') {
         d.x += d.vx; d.y += d.vy;
-        if (d.x < 0) { d.x = 0; d.vx *= -1; }
-        if (d.x > W) { d.x = W; d.vx *= -1; }
-        if (d.y < 0) { d.y = 0; d.vy *= -1; }
-        if (d.y > H) { d.y = H; d.vy *= -1; }
+        // Wraparound in plaats van bounce
+        if (d.x < -5) d.x = W + 5;
+        if (d.x > W + 5) d.x = -5;
+        if (d.y < -5) d.y = H + 5;
+        if (d.y > H + 5) d.y = -5;
       } else if (fase === 'inklapt') {
         d.x += (d.tx - d.x) * .07;
         d.y += (d.ty - d.y) * .07;
